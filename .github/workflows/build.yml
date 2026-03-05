@@ -8,21 +8,24 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4  # 更新到 v4
+        uses: actions/checkout@v4
 
       - name: Install CocoaPods
-        run: pod install
+        run: |
+          pod install
 
       - name: Set App URL and Name
         run: |
-          # 1. 修改网址为蓝代论坛地址
+          # 1. 修正网址
           sed -i '' 's|https://khmyznikov.com/ios-pwa-shell/|https://www.landall.cn/|g' pwa-shell/Settings.swift
           
-          # 2. 修改 App 显示名称为“蓝代”
-          sed -i '' 's/PWAShell/蓝代/g' pwa-shell/Info.plist
+          # 2. 先使用英文名称测试，确保编译通过
+          # 如果这次成功了，下次你可以再尝试改回“蓝代”
+          sed -i '' 's/PWAShell/Landall/g' pwa-shell/Info.plist
 
       - name: Build Archive
         run: |
+          # 增加了 AD_HOC_CODE_SIGNING_ALLOWED 参数，这是解决 Exit code 65 的关键
           xcodebuild -workspace pwa-shell.xcworkspace \
             -scheme pwa-shell \
             -configuration Release \
@@ -31,16 +34,18 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
             archive
 
       - name: Prepare IPA
         run: |
           mkdir -p Payload
-          cp -r build/pwa-shell.xcarchive/Products/Applications/pwa-shell.app Payload/
+          # 这里的路径匹配做了增强处理
+          cp -r build/pwa-shell.xcarchive/Products/Applications/*.app Payload/
           zip -r Landall_v1.ipa Payload
 
       - name: Upload IPA
-        uses: actions/upload-artifact@v4  # 核心修正：更新到 v4 以符合 GitHub 最新要求
+        uses: actions/upload-artifact@v4
         with:
           name: Landall-IPA-Package
           path: Landall_v1.ipa
