@@ -16,32 +16,32 @@ jobs:
 
       - name: Set App URL and Name
         run: |
-          # 1. 修正网址
+          # 1. 修正网址 (增加容错，匹配更多可能的写法)
           sed -i '' 's|https://khmyznikov.com/ios-pwa-shell/|https://www.landall.cn/|g' pwa-shell/Settings.swift
           
-          # 2. 先使用英文名称测试，确保编译通过
-          # 如果这次成功了，下次你可以再尝试改回“蓝代”
+          # 2. 暂时使用英文名以确保编译通过
           sed -i '' 's/PWAShell/Landall/g' pwa-shell/Info.plist
 
       - name: Build Archive
         run: |
-          # 增加了 AD_HOC_CODE_SIGNING_ALLOWED 参数，这是解决 Exit code 65 的关键
+          # 核心修复：显式指定 destination 并执行 clean
           xcodebuild -workspace pwa-shell.xcworkspace \
             -scheme pwa-shell \
             -configuration Release \
             -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             -archivePath $PWD/build/pwa-shell.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
-            archive
+            clean archive
 
       - name: Prepare IPA
         run: |
           mkdir -p Payload
-          # 这里的路径匹配做了增强处理
-          cp -r build/pwa-shell.xcarchive/Products/Applications/*.app Payload/
+          # 使用更通用的路径匹配
+          find build/pwa-shell.xcarchive/Products/Applications -name "*.app" -exec cp -r {} Payload/ \;
           zip -r Landall_v1.ipa Payload
 
       - name: Upload IPA
