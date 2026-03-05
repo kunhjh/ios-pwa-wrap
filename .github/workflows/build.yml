@@ -1,0 +1,50 @@
+name: Build IPA for Landall
+
+on:
+  workflow_dispatch: # 允许手动点击按钮触发
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install CocoaPods
+        run: pod install
+
+      - name: Set App URL and Name
+        run: |
+          # 1. 修改网址为蓝代论坛地址
+          sed -i '' 's|https://khmyznikov.com/ios-pwa-shell/|https://www.landall.cn/|g' pwa-shell/Settings.swift
+          
+          # 2. 修改 App 显示名称为“蓝代”
+          # 注意：这里会同时修改 Info.plist 中的 Bundle Name
+          sed -i '' 's/PWAShell/蓝代/g' pwa-shell/Info.plist
+          
+          # 3. 修改项目工程中的显示名 (可选，增加识别度)
+          sed -i '' 's/pwa-shell/Landall/g' pwa-shell.xcodeproj/project.pbxproj
+
+      - name: Build Archive
+        run: |
+          xcodebuild -workspace pwa-shell.xcworkspace \
+            -scheme pwa-shell \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath $PWD/build/pwa-shell.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            archive
+
+      - name: Prepare IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/pwa-shell.xcarchive/Products/Applications/pwa-shell.app Payload/
+          zip -r Landall_v1.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/actions-upload-artifact@v3
+        with:
+          name: Landall-IPA-Package
+          path: Landall_v1.ipa
