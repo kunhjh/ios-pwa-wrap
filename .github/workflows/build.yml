@@ -8,16 +8,17 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4  # 更新到 v4
 
       - name: Install CocoaPods
         run: pod install
 
       - name: Set App URL and Name
         run: |
-          # 修改网址
+          # 1. 修改网址为蓝代论坛地址
           sed -i '' 's|https://khmyznikov.com/ios-pwa-shell/|https://www.landall.cn/|g' pwa-shell/Settings.swift
-          # 修改 App 名称为 蓝代
+          
+          # 2. 修改 App 显示名称为“蓝代”
           sed -i '' 's/PWAShell/蓝代/g' pwa-shell/Info.plist
 
       - name: Build Archive
@@ -39,7 +40,7 @@ jobs:
           zip -r Landall_v1.ipa Payload
 
       - name: Upload IPA
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # 核心修正：更新到 v4 以符合 GitHub 最新要求
         with:
           name: Landall-IPA-Package
           path: Landall_v1.ipa
