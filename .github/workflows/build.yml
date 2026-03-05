@@ -1,31 +1,32 @@
-name: Build IPA for Landall
+name: Build Landall IPA
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-14 # 使用较新的 macOS 环境
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install CocoaPods
+      - name: Install Dependencies
         run: |
-          pod install
+          # 强制更新并安装依赖
+          pod install --repo-update
 
-      - name: Set App URL and Name
+      - name: Configure WebApp
         run: |
-          # 1. 修正网址 (增加容错，匹配更多可能的写法)
+          # 修正网址：你的 landall.cn 地址
           sed -i '' 's|https://khmyznikov.com/ios-pwa-shell/|https://www.landall.cn/|g' pwa-shell/Settings.swift
-          
-          # 2. 暂时使用英文名以确保编译通过
+          # 修正 App 名称
           sed -i '' 's/PWAShell/Landall/g' pwa-shell/Info.plist
 
-      - name: Build Archive
+      - name: Clean and Archive
         run: |
-          # 核心修复：显式指定 destination 并执行 clean
-          xcodebuild -workspace pwa-shell.xcworkspace \
+          # 核心修复：强制禁止所有签名行为，针对巨魔用户
+          xcodebuild clean archive \
+            -workspace pwa-shell.xcworkspace \
             -scheme pwa-shell \
             -configuration Release \
             -sdk iphoneos \
@@ -34,18 +35,17 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES \
-            clean archive
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
 
-      - name: Prepare IPA
+      - name: Generate IPA
         run: |
+          # 手动构造 Payload 文件夹
           mkdir -p Payload
-          # 使用更通用的路径匹配
-          find build/pwa-shell.xcarchive/Products/Applications -name "*.app" -exec cp -r {} Payload/ \;
-          zip -r Landall_v1.ipa Payload
+          cp -r build/pwa-shell.xcarchive/Products/Applications/*.app Payload/
+          zip -r Landall_Troll.ipa Payload
 
-      - name: Upload IPA
+      - name: Upload Result
         uses: actions/upload-artifact@v4
         with:
-          name: Landall-IPA-Package
-          path: Landall_v1.ipa
+          name: Landall-IPA
+          path: Landall_Troll.ipa
